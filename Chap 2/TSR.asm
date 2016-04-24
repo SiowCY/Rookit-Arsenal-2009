@@ -22,10 +22,10 @@ _over Data :
 _getBufferAddr:
 STI
 MOV DX,CS
-LEA DI,_buffe r
+LEA DI,_buffer
 IRET
 ; ISR to hook BIOS int 0x9-----------------------------------
-_hookBIOS :
+_hookBIOS:
 PUSH BX
 PUSH AX
 PUSHF		;far call to old BIOS routine
