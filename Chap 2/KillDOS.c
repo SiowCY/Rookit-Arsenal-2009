@@ -28,7 +28,7 @@ void main()
 		address=address+IDT_VECTOR_SZ,vector++
 	)
 	{
-		printf("%e3d\t%e8p\ t", vector, address);
+		printf("%e3d\t%e8p\t", vector, address);
 		
 		// IVT starts at bottom of memory, so CS is always 0x0
 		
@@ -44,7 +44,7 @@ void main()
 			INC BX
 			MOV AX, ES: [BX]
 			MOV csAddr, AX
-			pop ES
+			POP ES
 		};
 		printf("[CS: IP]=[%04X,%04X]\n" ,csAddr, ipAddr);
 	}
