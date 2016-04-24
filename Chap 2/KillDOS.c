@@ -73,7 +73,7 @@ for
 		MOV ES: [BX],AX
 		INC BX
 		INC BX
-		rov ES: [BX], AX
+		MOV ES: [BX], AX
 		POP ES
 	};
 }
