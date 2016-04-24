@@ -100,7 +100,7 @@ MOV WORD PTR _chkISR[0], BX
 MOV WORD PTR _chkISR[2], ES
 
 ; set up BIOS ISR hook
-LEA DX,_hookBIOS set up first ISR (Vector 187 = 0xBB)
+LEA DX,_hookBIOS ;set up first ISR (Vector 187 = 0xBB)
 MOV CX,CS
 MOV DS,CX
 MOV AH,25H
