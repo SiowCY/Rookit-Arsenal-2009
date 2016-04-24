@@ -50,7 +50,7 @@ jz _hb_Exit			;if ZF=l, buffer is empty (result from call to _chkISR)
 LEA BX , _buffer
 PUSH SI
 
-MOV SI, WORD PTR [_index)
+MOV SI, WORD PTR [_index]
 MOV BYTE PTR [BX+SI], AL
 INC SI
 MOV WORD PTR [_index], SI
