@@ -9,7 +9,7 @@
 #define WORD unsigned short
 #define BYTE unsigned char
 /*[Program-Specific Definitions]--------------------------------------------------------*/
-#define SZ_BUFFER	513	//maximum size of log file buffer ([e) ... (512))
+#define SZ_BUFFER	513	//maximum size of log file buffer ([e] ... (512))
 #define NCOLS	16	//number of columns per row when printing to CRT
 
 #define FILE_NAME ".\\$$klog.txt" 	//name of log file
