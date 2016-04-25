@@ -5,10 +5,10 @@
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #include<stdio.h>
 #include<stdlib.h>
-('[Data Types)--------------------------------------------------------------------------'
+/*[Data Types]--------------------------------------------------------------------------*/
 #define WORD unsigned short
 #define BYTE unsigned char
-(' [Program-Specific Definitions)--------------------------------------------------------'
+/*[Program-Specific Definitions]--------------------------------------------------------*/
 #define SZ_BUFFER	513	//maximum size of log file buffer ([e) ... (512))
 #define NCOLS	16	//number of columns per row when printing to CRT
 
@@ -36,7 +36,7 @@ const char *CONTROL_CHAR[SZ_CONTROL_CHAR] =
 "[Carriage return]",
 "[Shift Out]",
 "[Shift In]",
-"[Data Link Escape]"",
+"[Data Link Escape]",
 "[Device Control 1]",
 "[Device Control 2]",
 "[Device Control 3]",
@@ -96,7 +96,7 @@ void putInLogFile(BYTE* bptr,int size)
 		if((bptr[i] >=SZ_CONTROL_CHAR)&&(bptr[i] <= LAST_ASCII))
 		{
 			retVal = fputc(bptr[i],fptr);
-			if(retVal==EOF)
+			if( retVal==EOF)
 			{
 				printf("putlnLogFile(): Error writing %c to log file\n",bptr[i])
 			}
@@ -128,19 +128,19 @@ void printBuffer(char* cptr, int size)
 	int nColumns;		//formats the output to NCOLS columns
 	int nPrinted;		//tracks number of alphanumeric bytes
 	int i;
-	printf( "printBuffer():------------------------------\n");
+	printf("printBuffer():------------------------------\n");
 	nColumns=0;
 	nPrinted=0 ;
 	for(i=0; i<size; i++)
 	{
 		if((cptr[i] >=0x20)&&(cptr[i] <=0x7E))
 		{
-			printf("%c ", cptr[i]);
+			printf("%c", cptr[i]);
 			nPrinted++;
 		}
 		else
 		{
-			printf( "*");
+			printf("*");
 		}
 		nColumns++;
 		if(nColumns==NCOLS)
@@ -178,36 +178,36 @@ void emptyBuffer()
 	}
 	printf( "buffer[CS, IP]=%04X,%04X\n", bufferCS, bufferIP);
 	//move through global memory and harvest characters
-for(index=0; index<SZ_BUFFER; index++)
-{
-	_asm
+	for(index=0; index<SZ_BUFFER; index++)
 	{
-		PUSH ES
-		PUSH BX
-		PUSH SI
-		MOV ES, bufferCS
-		MOV BX, bufferIP
-		MOV SI, index
-		ADD BX,SI
-		
-		PUSH DS
-		MOV CX,ES
-		MOV DS ,CX
-		MOV SI,DS: [BX]
-		POP DS
-		
-		MOV value,SI
-		
-		POP SI
-		POP BX
-		POP ES
+		_asm
+		{
+			PUSH ES
+			PUSH BX
+			PUSH SI
+			MOV ES, bufferCS
+			MOV BX, bufferIP
+			MOV SI, index
+			ADD BX,SI
+			
+			PUSH DS
+			MOV CX,ES
+			MOV DS ,CX
+			MOV SI,DS: [BX]
+			POP DS
+			
+			MOV value,SI
+			
+			POP SI
+			POP BX
+			POP ES
+		}
+	crtIO[index]=(char)value;
 	}
-crtIO[index]=(char)value;
-}
-// display the harvested chars
-printBuffer(crtIO, SZ_BUFFER);
-putlnLogFile(crtIO, SZ_BUFFER);
-return;
+	// display the harvested chars
+	printBuffer(crtIO, SZ_BUFFER);
+	putlnLogFile(crtIO, SZ_BUFFER);
+	return;
 }/*end emptyBuffer()-------------------------------------------------*/
 void main()
 {
