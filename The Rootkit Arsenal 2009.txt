@@ -1,0 +1,379 @@
+The Rootkit Arsenal (2009)
+
+IVT - Interrupt Vector Table
+TSR - Terminate and stay resident program
+ISR - Interrupt Service Routine
+
+Chap 2: Into the Catacombs: IA-32
+
+Contrl bus - read and write memory
+Data bus - send and receive data between processor and memory
+
+Physical address is value that the processor address line send to RAM
+
+Processor reads from memory:
+1. Processor places the addr of the byte to be read on the addr lines
+2. Processor sends the read signal on the control bus
+3. RAM chips return the byte specified on the data bus
+Processor writes to memory:
+1. Processor places the addr of the byte to be written on the addr lines
+2. processor sends the write signal on the control bus
+3. processor sends the byte to be written to memory on the data bus
+
+IA-32 processor read and write data 4 bytes at a time
+Memory viewed in terms of distinct regions called segments.
+Byte of an addr in particualr segments is logical addr.
+A logical addr consists two parts: 1. segment selector 2. effective addr
+
+Two mode operations:
+1. Real mode
+2. Protected mode
+3. System management mode (SMM) - execute special code such as emergency shutdown
+http://phrack.org/issues/65/7.html (System management mode (SMM))
+
+Real Mode:
+16-bits execution enviroment of the old Intel 8086/88 processor:
+Store Segment Selector:
+1.	Code Segment (CS)	- Stores the base address of the current executing code segment
+2.	Data Segment (DS)	- Stores the base address of a segment containing global program data
+3.	Stack Segment (SS)	- Stores the base address of the stock segment
+4.	Extra Segment (ES)	- Stores the base address of asegment used to hold string data
+5.	FS	- Store the base address of other global data segments (release after 8086/88) 
+6.	GS	- Store the base address of other global data segments (release after 8086/88)
+General-purpose register:
+7.	EAX	- Accumulator register; used for arithmetic (Addition or minus)
+8.	EBX - base register; used as on index to address memory indirectly
+9.	ECX - Counter register; olten a loop index
+10.	EDX - Data register; used for arithmetic with the AX register (multiple or divide)
+Pointer Register:
+11.	Instruction Pointer	(EIP)	- Instruction pointer; the offset of the next instruction to execute
+12.	Stack Pointer(ESP)		- Stock pointer; the offset of the top-of-stack (lOS) byte
+13.	Stack Frame Pointer (EBP)	- Used to build stock frames for function colis
+Indexing Register:
+14.	Data Source Index (ESI)	- Pointer to source offset address for string operations
+15.	Data Destination Index (EDI)	- Pointer to destination offset address for string operations
+CPU status:
+16.	FLAGS (Trap Flag or Interrupt Flag)
+Intel required IA-32 processor speak the native dialect of its ancestor.
+This is why we still can boot IA-32 machines with a DOS boot disk
+
+Real Mode Interrupt:
+Interrupt is some event that trigger the execution of a special of procedure call interrupt service routine (ISR)
+First kilobyte of memory (addr 0x00000 to 0x003FF) is occupied by a special data structure called Interrupt Vector Table(IVT).
+In protected mode, is called Interrupt Descriptor Table (IDT)
+IVT and IDT map interrupts to ISRs. 
+In read mode, IVT sotre the logical addr of each ISR sequentially:
+At bottom of memory (addr 0x00000) is the effective addr of the first ISR followed its segment selector. (Low byte of the addr comes first)
+Each interrupt takes 4 bytes; ITV can hold 256 vectors (0 to 255)
+-------------------------------------
+						 +
+CS High Byte			/|\
+						 |
+CS Low Byte				 |
+						INT 0x01 Single-step; used by debuggers ta single-step through program execution
+IP High Byte			 |
+						\|/
+						 +
+IP Low Byte		Address 0x00004
+-------------------------------------
+						 +
+CS High Byte			/|\
+						 |
+CS Low Byte				 |
+						INT 0x00 Invoked by an aHempt ta divide by zero
+IP High Byte			 |
+						\|/
+						 +
+IP Low Byte		Address 0x00000
+-------------------------------------
+
+---------------------------------------------------------------------------------------------------
+Interrupt Number|	BIOS Interrupt Description
+---------------------------------------------------------------------------------------------------
+	00 			|	Invoked by an attempt ta divide by zero
+	01 			|	Single-step; used by debuggers ta single-step through program execution
+	02 			|	Nonmaskable interrupt (NMI); indicates an event that must not be ignored
+	03 			|	Break point, used by debuggers to pause execution
+	04 			|	Arithmetic overflow
+	05 			|	Print Screen key has been pressed
+	06 			|	Reserved
+	07 			|	Reserved
+	08 			|	System timer, updates system time and date
+	09 			|	Keyboard key has been pressed
+	OA 			|	Reserved
+	DB 			|	Serial device control (COM])
+	DC 			|	Serial device control (COM2)
+	00 			|	Parallel device control (LPT2)
+	0E 			|	Oiskette control; signals diskette activity
+	0F 			|	Parallel device control (LPTl)
+	10 			|	Videa display functions
+	11 			|	Equipment determination; indicates what sort of equipment is installed
+	12 			|	Memory size determination
+	13 			|	Disk 110 functions
+	14 			|	RS-232 serial port 110 functions
+	15 			|	System services; power-on self-testing, mouse interface, etc.
+	16 			|	Keyboard input functions
+	17 			|	Printer output functions
+	18 			|	ROM BASIC entry; starts ROM-resident BASIC if DOS cannot be loaded
+	19 			|	Boatstrap loader; loads boat record from disk
+	lA 			|	Read and set time
+	lB 			|	Keyboard break address; controls what happens when break key is pressed
+	lC 			|	Timer tick interrupt
+	1D			|	Video parameter tables
+	IE 			|	Diskette parameters
+	IF 			|	Graphics charader definition
+------------------------------------------------------------------------------------------------
+
+Under MS-DOS, the BIOS handles interrupts othrough 31 and DOS handles interrupts 32 through 63 (the entire DOS system call interface is essentially a series of interrupts). The remaining interrupts (64 to 255) are for user-defined interrupts.
+3 types of Interrupts:
+- Hardware interrupts (maskable or nonmaskable)
+- Software interrupts
+- Exceptions (fault, traps and aborts)
+
+Hardware Interrupts:
+- Maskable
+	- A maskable interrupt can be disabled by clearing the IF flag, via the CLI instruction. Interrupts 8 (system timer) and 9 (keyboard) are good examples of maskable hardware interrupts
+- Nonmaskable
+	- Cannot be disabled; the processor must always act on this type of interrupt. Interrupt 2 is an example of a nonmaskable hardware interrupt
+
+Software Interrupts:
+- Implemented in a program using the INT instruction
+- INT takes signle integer operand, which specifies the interrupt vector to invoke
+Example: invokes a DOS system call, via an interrupt to display the letter "A"
+MOV AH,02H
+MOV DL,41H
+INT 21H
+The INT instruction performs the following actions:
+1.	Clears the trap flag (TF) and interrupt enable flag (TF)
+2.	Pushes the FLAGS, CS and IP registers onto the stack (in that order)
+3.	Jumps to the addr of the ISR specified by the interrupt vector
+4.	Executes code until it reaches an IRET instruction
+IRET instruction is the inverse of the INT. It pops off the IP, CS and FLAGS values into their perpective registers (in this order) and program execution continues to the instruction following the INT operation.
+
+Exceptions: Error while executing an instruction
+- Fault
+	- The state of program can be reset to the state that existed before the exception so that hte instruction can be restarted. Interrupt 0 (divide by zero) - Correctable excception
+- Trap
+	- No instruction restart is possible. The processor reports the execution at the instruction boundary following the instruction that generated the execption. Interrupt 3 (breakpoint) and Interrupt 4 (overflow) are the examples of traps
+- Abort
+	- The program cannot be restarted 
+
+Segmentation and Program Control
+Real mode uses segmentation to manage memory.
+The instructions that transfer program control must now speicfy whether they're jumping to a location with the same segment (intra-segment) or from one segment to another (inter-segment).
+*** It is important when it comes into play when you patch an executable (either in memory or binary file) ***
+Classified as near or far jump.
+Near jump occurs when intra-segment; Far jump occurs when inter-segment transfer of program control
+INT and IRET instruction are far jumps because both of these instruction implicitly involve the segment selector and effective when the execute
+JMP and CALL instructions can be near or far depending on how they are invoked. Both also can be diret or indirect depends on they spcify the destination of the jump explicit or not
+JMP Type		Example 				Real Mode Binary Encoding
+Short 			JMP SHORT mylabel 		0xEB [signed disp. byte]
+Near direct 	JMP NEAR PTR mylabel 	0xE9 (low disp. byte][high disp. byte]
+Near indirect 	JMP BX 					0xFF 0xE3
+For direct 		JMP OS: [mylabel] 		0xEA [IP low][IP high][CS low][CS high]
+For indirect 	JMP DWORD PTR [BX] 		0xFF 8x2F
+
+Short jump is a 2-byte instruction that takes a signed byte displacement (-128 to +127) and adds it to the current value in the IP register to transfer program control over short distances
+
+Near jump very similar, with the exception that the displacement is signed word instead of a byte, such that the resulting jumps can cover more distance (-32768 to +32767)
+
+Far jump are more involved, far direct jump are encoded with a 32-bit operand that specifies both the segment selector and effective addr of the destination
+
+CALL Type 			Example 			Real-Mode Binary Encoding
+Near direct 		CALL mylabel 		0xES [low disp. byte][high disp. byte]
+Near indirect 		CALL BX 			0xFF 8xD3
+For direct 			CALL OS : [mylabel] 0x9A [IP low][IP high][CS low][CS high]
+For indirect 		CALL DWORD PTR [BX] 0xFF 0xlF
+Near return 		RET 				0xC3
+For return 			RETF 				0xCB
+
+*** Short and near jumps are interesting because they are relocatable, which is to say that they don't depend upon a given address being specified in the resulting binary encoding. This can be useful when patching an executable ***
+
+Case Study - Dumping IVT
+KillDOS.c
+
+Case Study - Logging Keystrokes with a TSR
+TSR.asm 
+main -> _localStk AX = (256*"?")  -> Add AX, 100H -> MOV SP,AX -> call _install -> _getbufferAddr -> STI (set INT flag) -> _buffer (512*"W") ->  MOV AH,25H  MOV AL,187  INT 21H (Setup for interrupt vector, vector 187 = 0xBB) -> MOV AH,35H  MOV AL,09H  INT 21H (Get existing BIOS 0x9 INT addr) -> MOV AH,35H  MOV AL,16H  INT 21H (Get existing BIOS 0x16 INT addr) -> _hookBIOS (Setup first Interrupt Service Routine (ISR) go see the source code how it perform hook) -> MOV AH,25H  MOV AL,09H  INT 21H (Set Interrupt Vector 0x25 and 0x9 Keypress) -> MOV AH,31H  MOV AL,0H  MOV DX,200H  INT 21H (Make this program resident 0x31) -> Return 
+
+Case Study - Hiding the TSR
+DOS divides memory into blocks, the first paragraph of each block is a data structure known as the memory control block (MCB)
+To get into MCB - MOV AH,52H INT 21H 
+Address of first MCB is DWRORD located at ES:[BX-4] 
+Next MCB = current MCB addr + size of MCB + size of current block
+To hide TSR, update the size of its predessor so that the MCB to e hidden gets skipped over the next time the MCB chain is traversed
+
+Case Study - Patching the tree.com command
+
+
+Protected Mode
+- All registers from 16-bit segment to 32 bits size 2^16 to 2^32
+- Additional registers:
+	- 5 Control Registers (CR0 - CR4)
+	- Global Descriptor Table Register (GDTR)
+	- Local Descriptor Table Register (LDTR)
+	- Interrupt Descriptor Table Register (IDTR)
+	
+Bit 31					Bit 0
++---------------------------+
+|		AX	|	AH	|	AL	|EAX
++---------------------------+
+
+Bit 47									Bit 0
++-------------------------------------------+
+|	GDTR Global Descriptor Table Register	|
++-------------------------------------------+
++-------------------------------------------+
+|  IDTR Interrupt Descriptor Table Register |
++-------------------------------------------+
+
+Bit 15									Bit 0
++-------------------------------------------+
+|  LDTR Local Descriptor Table Register 	|
++-------------------------------------------+
+
+Bit 31					Bit 0
++---------------------------+
+|	CR0 Control Register	|
+|	CR1 Control Register	|
+|	CR2 Control Register	|
+|	CR3 Control Register	|
+|	CR4 Control Register	|
++---------------------------+
+
+In real mode: Segment register store segment selectors, first half of a logical addr.
+In protected mode: Store binary structure consisting of multiple fields that's used to index an entry in a table.
+
+CS register cannot be set explicitly (directly), must set implicitly (indirectly) through instructions that transfer program control.
+JMP, CALL, INT, RET, IRET, SYSENTER, SYSEXIT, etc are used in tranfer program control
+
+--------------------------------------------------------------------------------------------------------------
+Register 		|	Description
+--------------------------------------------------------------------------------------------------------------
+CS 				|	Specifies the descriptor of the current executing code segment
+SS 				|	Specifies the descriptor of the stack segment
+DS, ES, FS, GS	|	Specify the descriptors of program data segments
+EIP 			|	Instruction pointer; the linear address offset of the next instruction to execute
+ESP 			|	Stack pointer; the offset of the top-of-stack (TOS) byte
+EBP 			|	Used to build stack frames for function calls
+EAX 			|	Accumulator register; used for arithmetic
+EBX 			|	Base register; used as an index to address memory indirectly
+ECX 			|	Counter for loop and string operations
+EDX 			|	Input/output pointer
+ESI 			|	Points to data in segment indicoted by DS register; used in string operations
+EDI 			|	Points to address in segment indicated by ES register; used in string operations
+---------------------------------------------------------------------------------------------------------------
+
+Protected Mode Segmentation
+- Segmentation	(Mandatory)
+- Paging		(Optional)	
+
+Protected mode is an instance of segmented memory model, with a logical address and two components (the segment selector 16 bits and effective address 32-bit)
+
+Segment selector:
+- References an entry in a table that describes a segment in linear addr space
+- Binary structure that contains details about a segment in linear addr space
+- Split three fields
+	-> highest 13 bits (bits 15 through 3) are an index into the GDT
+		- 2^13 - 1 = 8192 segments descriptor
+	-> Bit 2
+		- LDT = 1
+		- GDT = 0
+	-> Bit 1, 0
+		- Request Privileged Level (RPL) 00 = most privilege; 11 = least privilege
+	
+	Protected Mode Segmented Memory Model (Without Paging)
+	
+	
+				Bit 32																			  Linear Address Space
+				+-----------------------+									+-------+			+-----------------------+
+				|	Offset Address		|---------------------------------->|	+	|-----------+->	Address 0xFFFFFFFF	|
+	Logical		+-----------------------+									+-------+			|	Address 0xFFFFFFFE	|
+	Address		Bit 16															|				|	Address 0xFFFFFFFD	|
+				+-------------------+			+-----------------------+		|				|	Address 0xFFFFFFFC	|
+				|  Segment Selector |			|						|		|				|	Address 0xFFFFFFFB	|
+				+-------------------+			|						|		|				|	Address 0xFFFFFFFA	|
+						|						+-----------------------+		|				|			^			|
+						+---------------------->| Segment Descriptor	|-------+				|	Address 0x00000002	|	
+												+-----------------------+	Base Address		|	Address 0x00000001	|
+												|						|						|	Address 0x00000000	|
+												|	Global Descriptor	|						+-----------------------+
+					Bit 48						|	Table (GDT)			|
+					+-------------------+		|						|
+					|		GDTR		|------>+-----------------------+
+					+-------------------+
+				
+Segment Descriptor:
+- Store segment metadata in linear address space (access right, size, 32-bit base address)
+- 32 bit base address of the segment, extracted from the descriptor by the processor, is then added to the offeet to yield a linear address
+- Base address and offset address are both 32-bit values (4GB address range from 0x00000000 to 0xFFFFFFFF)
+
+64-bit Segment Descriptor 
+
+Bit 31	   24 23   22   21   20   19         16  15 14  13 12 11   8 7           0	
++--------------------------------------------------------------------------------+
+| Base 31:24 | G | D/B | L | AVL | Limit 19:16 | P | DPL | S | Type | Base 23:16 |
++--------------------------------------------------------------------------------+
+
+Bit 31										16	15								 0
++--------------------------------------------------------------------------------+
+| 	Base Address, bits 15:00					|	Segment Limit, bits 15:00	 |
++--------------------------------------------------------------------------------+
+
++-------------------------------------------------------------------------------------------------------------------------------------------+
+|	Segment limit (20-bits)	|	Size of the segment (if G is clear: 1 byte - 1 MB, if G is set: 4 KB to 4 GB in 4 KB Increments)			|
+|  *Base Address (32-bits)	|	Base address used to form the final linear address															|
+|  *Type Field				|	Type of segment we're dealing with (code or data ), access, and growth direction							|
+|  *S Flag					|	If S is clear, we're dealing with system segment, if S is set, we're dealing with an application segment	|
+|  *DPL						|	Descriptor privilege level (00 = most privilege, 11 = least privilege)										|
+|	P Flag					|	Specifies if the segment is currently in memory (if P is set, it is)										|
+|	AVL						|	Available for use by the resident operating system (i.e. no explicit purpose)								|
+|	L Flag					|	Most IA-32 processors set this bit to zero (this bit Indicates if the segment contains 64-bit code)			|
+|	D/B						|	Meaning of this flag varies depending on the segment type (code, data, or stack)							|
+|	G Flag					|	See description of Segment limit field																		|
++-------------------------------------------------------------------------------------------------------------------------------------------+
+*** Focus on Base address field, Type Field, S Flag and DPL field ***
+Descriptor Privilege Level (DPL) - Same as RPL, 0 to 3. Ring0 to Ring3. Kernel execute in Ring0 and User execute in Ring3.
+Type field and S flag used together to determine what sort of descriptor we're dealing with.
+- Different types of segment descriptor because there are different types of memory segments.
+	- S flag defines two classes:
+		- Code and data segment descriptor (S=1)
+		- System segment descriptor (S=0)
+		
+	
+
+
+
+
+
+Global Descriptor Tables:
+- Shared by all tasks
+- First entry always empty called null segment descriptor
+- A selector that indexes this GDT entry is known as null selector
+
+Global Descriptor Table Register:
+- 48 bits in size
+- bit 0 to bit 15 determine the size of GDT (in bytes)
+- bit 16 to bit 47 (32 bits) store base linear address of GDT (linear address of the first byte)
+- Two special instrcutions:
+	- LGDT (load value into GDTR)
+		-> Privileged instruction and can only executed by the OS
+	- SGDT (Stores/ read the value in GDTR)
+		-> 
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
